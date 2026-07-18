@@ -7,8 +7,15 @@ import { isInsideWalkable, EYE_LEVEL } from './gallery.js';
  * @param {HTMLElement} domElement
  * @param {THREE.Vector3} spawn
  * @param {{ minX:number,maxX:number,minZ:number,maxZ:number }[]} [frameColliders]
+ * @param {() => ({minX:number,maxX:number,minZ:number,maxZ:number}|null)} [getDoorCollider]
  */
-export function createPlayer(camera, domElement, spawn, frameColliders = []) {
+export function createPlayer(
+  camera,
+  domElement,
+  spawn,
+  frameColliders = [],
+  getDoorCollider = () => null
+) {
   const controls = new PointerLockControls(camera, domElement);
   camera.position.copy(spawn);
 
@@ -51,16 +58,23 @@ export function createPlayer(camera, domElement, spawn, frameColliders = []) {
   document.addEventListener('keydown', down);
   document.addEventListener('keyup', up);
 
+  function hitsBox(x, z, box) {
+    if (!box) return false;
+    return x >= box.minX && x <= box.maxX && z >= box.minZ && z <= box.maxZ;
+  }
+
   function hitsFrame(x, z) {
     for (let i = 0; i < colliders.length; i++) {
-      const c = colliders[i];
-      if (x >= c.minX && x <= c.maxX && z >= c.minZ && z <= c.maxZ) return true;
+      if (hitsBox(x, z, colliders[i])) return true;
     }
     return false;
   }
 
   function canStand(x, z) {
-    return isInsideWalkable(x, z) && !hitsFrame(x, z);
+    if (!isInsideWalkable(x, z)) return false;
+    if (hitsFrame(x, z)) return false;
+    if (hitsBox(x, z, getDoorCollider())) return false;
+    return true;
   }
 
   function tryMove(from, to) {
@@ -114,11 +128,22 @@ export function createPlayer(camera, domElement, spawn, frameColliders = []) {
     controls.lock();
   }
 
+  function unlockPointer() {
+    controls.unlock();
+  }
+
   function dispose() {
     document.removeEventListener('keydown', down);
     document.removeEventListener('keyup', up);
     controls.dispose();
   }
 
-  return { controls, update, lock, dispose, setFrameColliders };
+  return {
+    controls,
+    update,
+    lock,
+    unlockPointer,
+    dispose,
+    setFrameColliders,
+  };
 }

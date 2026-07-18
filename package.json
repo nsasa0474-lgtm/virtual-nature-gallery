@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "download-photos": "node scripts/download-photos.mjs",
+    "encrypt-secret": "node scripts/encrypt-secret.mjs",
     "start": "node serve.mjs"
   },
   "dependencies": {

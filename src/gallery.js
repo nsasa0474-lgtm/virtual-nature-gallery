@@ -24,7 +24,15 @@ const ROOMS = [
   { x: -12, z: 0, w: 6, d: 4.0, name: 'corridor-w' },
   // West hall
   { x: -22, z: 0, w: 14, d: 11, name: 'west' },
+  // Corridor south → secret vault
+  { x: 0, z: 9, w: 4.0, d: 6, name: 'corridor-s' },
+  // Secret room (photos only after unlock) — abuts corridor-s at z=12
+  { x: 0, z: 17, w: 12, d: 10, name: 'secret' },
 ];
+
+let secretUnlocked = false;
+let doorMesh = null;
+let doorCollider = null;
 
 function roomBounds(room) {
   const hw = room.w / 2;
@@ -41,7 +49,12 @@ function roomBounds(room) {
 export function getWalkableRects() {
   // Keep camera ~0.35m+ from inner wall face so near-plane doesn't clip through walls
   const inset = WALL_THICKNESS * 0.5 + 0.38;
-  const rects = ROOMS.map((r) => {
+  const rects = ROOMS.filter((r) => {
+    if (!secretUnlocked && (r.name === 'secret' || r.name === 'corridor-s')) {
+      return false;
+    }
+    return true;
+  }).map((r) => {
     const b = roomBounds(r);
     return {
       minX: b.minX + inset,
@@ -60,6 +73,13 @@ export function getWalkableRects() {
     { minX: -1.5, maxX: 1.5, minZ: -7.7, maxZ: -4.3 }, // main ↔ corridor-n
     { minX: -1.5, maxX: 1.5, minZ: -13.7, maxZ: -10.3 }, // corridor-n ↔ north
   ];
+
+  if (secretUnlocked) {
+    bridges.push(
+      { minX: -1.5, maxX: 1.5, minZ: 5.3, maxZ: 7.7 }, // main ↔ corridor-s
+      { minX: -1.5, maxX: 1.5, minZ: 11.3, maxZ: 12.7 } // corridor-s ↔ secret (meet at z=12)
+    );
+  }
 
   return rects.concat(bridges);
 }
@@ -198,6 +218,7 @@ const OPENINGS = [
   { room: 'main', side: 'e', offset: 0, width: 3.6, height: 2.6 },
   { room: 'main', side: 'w', offset: 0, width: 3.6, height: 2.6 },
   { room: 'main', side: 'n', offset: 0, width: 3.6, height: 2.6 },
+  { room: 'main', side: 's', offset: 0, width: 3.6, height: 2.6 },
   { room: 'corridor-e', side: 'w', offset: 0, width: 3.6, height: 2.6 },
   { room: 'corridor-e', side: 'e', offset: 0, width: 3.6, height: 2.6 },
   { room: 'east', side: 'w', offset: 0, width: 3.6, height: 2.6 },
@@ -207,6 +228,9 @@ const OPENINGS = [
   { room: 'corridor-n', side: 's', offset: 0, width: 3.6, height: 2.6 },
   { room: 'corridor-n', side: 'n', offset: 0, width: 3.6, height: 2.6 },
   { room: 'north', side: 's', offset: 0, width: 3.6, height: 2.6 },
+  { room: 'corridor-s', side: 'n', offset: 0, width: 3.6, height: 2.6 },
+  { room: 'corridor-s', side: 's', offset: 0, width: 3.6, height: 2.6 },
+  { room: 'secret', side: 'n', offset: 0, width: 3.6, height: 2.6 },
 ];
 
 /**
@@ -346,24 +370,68 @@ export function createGallery() {
     ];
 
     for (const [lx, lz] of spots) {
-      const light = new THREE.PointLight(0xfff2e0, 28, 14, 2);
+      const light = new THREE.PointLight(
+        room.name === 'secret' ? 0xffe8d0 : 0xfff2e0,
+        room.name === 'secret' ? 22 : 28,
+        14,
+        2
+      );
       light.position.set(lx, WALL_HEIGHT - 0.35, lz);
       light.castShadow = false;
       group.add(light);
     }
 
-    // Subtle directional fill
     const dir = new THREE.DirectionalLight(0xfff8ee, 0.25);
     dir.position.set(room.x + 4, 8, room.z + 3);
     group.add(dir);
   }
+
+  // Locked door in main → south opening (blocks until unlock)
+  // Slightly larger than opening so sides/top seal with no light leaks
+  const doorMat = new THREE.MeshStandardMaterial({
+    color: 0x3a2a1c,
+    roughness: 0.65,
+    metalness: 0.15,
+  });
+  const mainOpen = OPENINGS.find((o) => o.room === 'main' && o.side === 's');
+  const doorW = mainOpen.width + 0.12;
+  const doorH = mainOpen.height + 0.08;
+  const doorD = WALL_THICKNESS + 0.02;
+  const doorY = doorH / 2;
+  const doorZ = 6.0;
+  doorMesh = new THREE.Mesh(new THREE.BoxGeometry(doorW, doorH, doorD), doorMat);
+  doorMesh.position.set(0, doorY, doorZ);
+  group.add(doorMesh);
+  doorCollider = {
+    minX: -doorW / 2 - 0.05,
+    maxX: doorW / 2 + 0.05,
+    minZ: doorZ - doorD / 2 - 0.08,
+    maxZ: doorZ + doorD / 2 + 0.08,
+  };
 
   return {
     group,
     eyeLevel: EYE_LEVEL,
     spawn: new THREE.Vector3(0, EYE_LEVEL, 3),
     pictureWalls: getPictureWalls(),
+    doorPosition: new THREE.Vector3(0, EYE_LEVEL, 5.2),
+    setSecretUnlocked,
+    isSecretUnlocked: () => secretUnlocked,
+    getDoorCollider: () => (secretUnlocked ? null : doorCollider),
   };
+}
+
+export function setSecretUnlocked(unlocked) {
+  secretUnlocked = !!unlocked;
+  if (doorMesh) {
+    doorMesh.visible = !secretUnlocked;
+  }
+}
+
+export function isNearSecretDoor(x, z, radius = 2.2) {
+  const dx = x - 0;
+  const dz = z - 5.5;
+  return dx * dx + dz * dz <= radius * radius && z > 3.5 && z < 6.8;
 }
 
 export { WALL_HEIGHT, FRAME_CENTER_Y, EYE_LEVEL };

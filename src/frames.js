@@ -298,6 +298,49 @@ export function hangPhotos(sceneGroup, pictureWalls, textures) {
   return { placed, frameColliders };
 }
 
+/** Load THREE textures from blob/http URLs (for decrypted secret photos). */
+export function loadTexturesFromUrls(items) {
+  const loader = new THREE.TextureLoader();
+  return Promise.all(
+    items.map(
+      (item) =>
+        new Promise((resolve, reject) => {
+          loader.load(
+            item.url,
+            (texture) => {
+              resolve({
+                texture,
+                width: texture.image?.width || 1600,
+                height: texture.image?.height || 1200,
+                file: item.file,
+              });
+            },
+            undefined,
+            reject
+          );
+        })
+    )
+  );
+}
+
+/** Remove hung frames from the scene (secret room wipe). Disposes GPU textures. */
+export function removeFrames(sceneGroup, frames) {
+  for (const frame of frames) {
+    sceneGroup.remove(frame);
+    frame.traverse((obj) => {
+      if (obj.geometry) obj.geometry.dispose();
+      if (!obj.material) return;
+      const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+      for (const mat of mats) {
+        // Shared wood material is reused across all frames — never dispose it
+        if (mat === sharedWoodMaterial) continue;
+        if (mat.map) mat.map.dispose();
+        mat.dispose();
+      }
+    });
+  }
+}
+
 /**
  * Load photos from manifest.
  */
