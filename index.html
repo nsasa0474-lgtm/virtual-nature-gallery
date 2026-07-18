@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Виртуальная галерея природы</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="overlay">
+      <div class="overlay-panel">
+        <h1>Виртуальная галерея природы</h1>
+        <p class="subtitle">Прогуляйтесь по залам и рассмотрите фотографии на стенах</p>
+        <ul class="hints">
+          <li><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> или стрелки — ходьба</li>
+          <li>Мышь — осмотр</li>
+          <li><kbd>Esc</kbd> — отпустить курсор</li>
+        </ul>
+        <button id="enter-btn" type="button">Войти в галерею</button>
+        <p class="loading" id="loading-text">Загрузка сцены…</p>
+      </div>
+    </div>
+    <canvas id="gallery-canvas"></canvas>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
