@@ -92,4 +92,4 @@ function tryListen(port, attemptsLeft) {
   });
 }
 
-tryListen(PREFERRED_PORT, 20);
+tryListen(PREFERRED_PORT, 120);

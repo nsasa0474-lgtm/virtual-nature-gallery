@@ -8,3 +8,6 @@ nopublic/
 .env.*
 new_foto/*
 !new_foto/README.txt
+gallery-url.txt
+public/photos_staging/
+public/photos_backup/
