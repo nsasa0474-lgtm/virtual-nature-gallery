@@ -5,3 +5,5 @@ dist/
 nopublic/
 .env
 .env.*
+new_foto/*
+!new_foto/README.txt

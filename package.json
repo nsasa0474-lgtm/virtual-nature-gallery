@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "download-photos": "node scripts/download-photos.mjs",
     "encrypt-secret": "node scripts/encrypt-secret.mjs",
+    "replace-photos": "node scripts/replace-photos.mjs",
     "start": "node scripts/ensure-ready.mjs && node serve.mjs"
   },
   "dependencies": {
