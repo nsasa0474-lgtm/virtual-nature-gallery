@@ -3,49 +3,48 @@ chcp 65001 >nul
 setlocal EnableExtensions
 cd /d "%~dp0"
 
-where node >nul 2>&1
-if errorlevel 1 (
+if not exist "%~dp0dist\index.html" (
   echo.
-  echo  [!] Node.js not found in PATH.
-  echo  Install Node.js from https://nodejs.org and try again.
-  echo.
-  pause
-  exit /b 1
-)
-
-where npm >nul 2>&1
-if errorlevel 1 (
-  echo.
-  echo  [!] npm not found in PATH.
-  echo  Reinstall Node.js from https://nodejs.org ^(include npm^).
+  echo  [!] Missing gallery build: dist\index.html
+  echo  Download a fresh ZIP from GitHub.
   echo.
   pause
   exit /b 1
 )
 
-echo.
-echo  Preparing gallery...
-echo.
-
-node "%~dp0scripts\ensure-ready.mjs"
+where powershell >nul 2>&1
 if errorlevel 1 (
   echo.
-  echo  [!] Failed to prepare the build.
+  echo  [!] PowerShell not found. Need Windows 10/11.
   echo.
   pause
   exit /b 1
 )
 
 echo.
-echo  Starting gallery...
+echo  Preparing photos...
 echo.
 
-node "%~dp0serve.mjs"
+if not exist "%~dp0dist\photos\" mkdir "%~dp0dist\photos"
+if not exist "%~dp0dist\secret\" mkdir "%~dp0dist\secret"
+robocopy "%~dp0public\photos" "%~dp0dist\photos" /E /NFL /NDL /NJH /NJS /nc /ns /np >nul
+robocopy "%~dp0public\secret" "%~dp0dist\secret" /E /NFL /NDL /NJH /NJS /nc /ns /np >nul
+if errorlevel 8 (
+  echo  [!] Failed to copy photos into dist\
+  pause
+  exit /b 1
+)
+
+echo  Starting gallery (browser opens automatically)...
+echo  Close this window to stop.
+echo.
+
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0serve-gallery.ps1" -Port 8765 -Root "%~dp0dist"
 set "ERR=%ERRORLEVEL%"
 
 if not "%ERR%"=="0" (
   echo.
-  echo  [!] Server exited with error: %ERR%
+  echo  [!] Failed to start. Code: %ERR%
   echo.
   pause
   exit /b %ERR%

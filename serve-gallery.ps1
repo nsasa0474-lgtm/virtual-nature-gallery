@@ -1,36 +1,14 @@
-param(
-  [int]$Port = 5173,
+﻿param(
+  [int]$Port = 8765,
   [Parameter(Mandatory = $true)]
   [string]$Root
 )
 
 $ErrorActionPreference = 'Stop'
 $Root = (Resolve-Path -LiteralPath $Root).Path
-
-try {
-  $conn = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue
-  if ($conn) {
-    $conn | ForEach-Object {
-      Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue
-    }
-    Start-Sleep -Milliseconds 400
-  }
-} catch {}
-
-$listener = New-Object System.Net.HttpListener
-$prefix = "http://127.0.0.1:$Port/"
-$listener.Prefixes.Add($prefix)
-try {
-  $listener.Start()
-} catch {
-  Write-Host "Cannot bind port $Port"
-  Write-Host $_
-  exit 1
+if (-not $Root.EndsWith([IO.Path]::DirectorySeparatorChar)) {
+  $Root = $Root + [IO.Path]::DirectorySeparatorChar
 }
-
-Write-Host "Gallery running: $prefix"
-Write-Host "Close this window (or Ctrl+C) to stop."
-Start-Process $prefix
 
 function Get-ContentType([string]$ext) {
   switch ($ext.ToLowerInvariant()) {
@@ -46,6 +24,7 @@ function Get-ContentType([string]$ext) {
     '.svg'  { return 'image/svg+xml' }
     '.ico'  { return 'image/x-icon' }
     '.map'  { return 'application/json' }
+    '.bin'  { return 'application/octet-stream' }
     default { return 'application/octet-stream' }
   }
 }
@@ -61,6 +40,45 @@ function Get-SafePath([string]$urlPath) {
   return $full
 }
 
+function Start-GalleryListener([int]$tryPort) {
+  $listener = New-Object System.Net.HttpListener
+  $prefix = "http://127.0.0.1:$tryPort/"
+  $listener.Prefixes.Add($prefix)
+  $listener.Start()
+  return @{ Listener = $listener; Prefix = $prefix; Port = $tryPort }
+}
+
+$started = $null
+$lastError = $null
+for ($i = 0; $i -lt 25; $i++) {
+  $tryPort = $Port + $i
+  try {
+    $conn = Get-NetTCPConnection -LocalPort $tryPort -State Listen -ErrorAction SilentlyContinue
+    if ($conn) { continue }
+    $started = Start-GalleryListener $tryPort
+    break
+  } catch {
+    $lastError = $_
+    try { if ($started -and $started.Listener) { $started.Listener.Close() } } catch {}
+    $started = $null
+  }
+}
+
+if (-not $started) {
+  Write-Host "Cannot bind port near $Port"
+  if ($lastError) { Write-Host $lastError }
+  exit 1
+}
+
+Write-Host ""
+Write-Host "  Р’РёСЂС‚СѓР°Р»СЊРЅР°СЏ РіР°Р»РµСЂРµСЏ РїСЂРёСЂРѕРґС‹"
+Write-Host "  ============================"
+Write-Host "  $($started.Prefix)"
+Write-Host "  Р—Р°РєСЂРѕР№С‚Рµ СЌС‚Рѕ РѕРєРЅРѕ, С‡С‚РѕР±С‹ РѕСЃС‚Р°РЅРѕРІРёС‚СЊ РіР°Р»РµСЂРµСЋ."
+Write-Host ""
+Start-Process $started.Prefix
+
+$listener = $started.Listener
 try {
   while ($listener.IsListening) {
     $ctx = $listener.GetContext()

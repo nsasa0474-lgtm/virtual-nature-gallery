@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Виртуальная галерея природы</title>
+    <script type="module" crossorigin src="./assets/index-CE3Y8GXm.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-Br5DB4Gz.css">
+  </head>
+  <body>
+    <div id="overlay">
+      <div class="overlay-panel">
+        <h1>Виртуальная галерея природы</h1>
+        <p class="subtitle">Прогуляйтесь по залам и рассмотрите фотографии на стенах</p>
+        <ul class="hints">
+          <li><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> или стрелки — ходьба</li>
+          <li>Мышь — осмотр</li>
+          <li><kbd>Esc</kbd> — отпустить курсор</li>
+          <li>У южной двери: <kbd>E</kbd> — пароль, <kbd>L</kbd> — запереть</li>
+        </ul>
+        <button id="enter-btn" type="button">Войти в галерею</button>
+        <p class="loading" id="loading-text">Загрузка сцены…</p>
+      </div>
+    </div>
+    <div id="door-prompt" class="hud-hint hidden">E — ввести пароль у двери</div>
+    <div id="lock-hint" class="hud-hint hidden">L — запереть секретную комнату</div>
+    <div id="password-overlay" class="hidden" aria-hidden="true">
+      <div class="password-panel">
+        <h2>Секретная комната</h2>
+        <p class="password-lead">Введите пароль, чтобы открыть дверь</p>
+        <input
+          id="secret-password"
+          type="password"
+          autocomplete="off"
+          spellcheck="false"
+          placeholder="Пароль"
+        />
+        <p id="password-error" class="password-error" role="alert"></p>
+        <div class="password-actions">
+          <button id="password-submit" type="button">Открыть</button>
+          <button id="password-cancel" type="button">Отмена</button>
+        </div>
+      </div>
+    </div>
+    <canvas id="gallery-canvas"></canvas>
+  </body>
+</html>

@@ -1,5 +1,6 @@
 node_modules/
-dist/
+dist/photos/
+dist/secret/
 .DS_Store
 *.log
 nopublic/
